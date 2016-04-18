@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Watch a Movie's Trailer</title>
+    <meta charset="utf-8" />
+    @Styles.Render("~/Content/css")
+    <script type="text/javascript" src="/Scripts/jquery.unobtrusive-ajax.js"></script>
+    <script type="text/javascript" src="/Scripts/jquery-1.10.2.js"></script>
+    <script type="text/javascript" src="/Scripts/jquery.validate.unobtrusive.js"></script>
+    <script src="https://apis.google.com/js/client.js?onload=init"> </script>
+    <script type="text/javascript">
+
+        var movieListCreation = function (data, textStatus) {
+            var teams = JSON.parse(data);
+            var moviesJson = teams.title_substring;
+            $.each(moviesJson, function (key, val) {
+                $('#movielist').append('<li><a href="#" title="' + val.title + '" data-id="' + val.titleid + '"><p>' + val.title + '</p></a></li>');
+            });
+            $('#movielist li').hide();
+        }
+        var movieInfo = {
+            id: null,
+            title: null
+        }
+
+        var loadMovies = function (cb) {
+            var inputData = 'Input values';
+            $.ajax({
+                type: 'get',
+                url: '/api/Movies',
+                datatype: 'json',
+                data: inputData,
+                cache: false,
+                success: cb
+            });
+        }
+        loadMovies(movieListCreation);
+
+        $(function () {
+            $('#search').on('keyup', function () {
+                if (this.value.length > 0) {
+                    $('#movielist li').hide().filter(function () {
+                        return $(this).text().toLowerCase().indexOf($('#search').val().toLowerCase()) != -1;
+                    }).show();
+                }
+                else {
+                    $('#movielist li').hide();
+                }
+            });
+        });
+
+        $(function () {
+            $('#movielist').on('click', 'li a', function () {
+                movieInfo.title = $(this)[0].attributes.title.value;
+                $('search').text = movieInfo.title;
+                $.ajax({
+                    type: 'get',
+                    url: '/api/Movies',
+                    data: { title: JSON.stringify(movieInfo.title) },
+                    dataType: 'json',
+                    cache: false,
+                    success: function (data) {
+                        if (data.length > 0) {
+                            $('#VideoID')[0].attributes['data-id'].value = data;
+                        loadVideo();
+                        $('#movielist li').hide();
+                        }
+                        else {
+                            alert("Movie Not found");
+                        }
+                    },
+                    error: function (xhr) {
+                        alert("Movie Not found");
+                    }
+                });
+            });
+        });
+
+        var loadVideo = function () {
+            var v = document.getElementsByClassName("youtube-player");
+            for (var n = 0; n < v.length; n++) {
+                var p = document.createElement("div");
+                p.innerHTML = createimg(v[n].dataset.id);
+                p.onclick = addYouttubePlayer;
+                v[n].appendChild(p);
+            }
+        };
+
+
+        function createimg(id) {
+            return '<img class="youtube-thumb" src="//i.ytimg.com/vi/' + id + '/hqdefault.jpg"><div class="play-button"></div>';
+        }
+
+        function addYouttubePlayer() {
+            var iframe = document.createElement("iframe");
+            iframe.setAttribute("src", "//www.youtube.com/embed/" + this.parentNode.dataset.id + "?autoplay=1&autohide=2&border=1&wmode=opaque&enablejsapi=1&controls=0&showinfo=0");
+            iframe.setAttribute("frameborder", "0");
+            iframe.setAttribute("id", "youtube-iframe");
+            this.parentNode.replaceChild(iframe, this);
+        }
+    </script>
+</head>
+<body>
+    <div>
+        <label for="Search">Type the movie name you are lookin for and select from the list below:</label>
+        <div>
+            <input type="text" id="search" width="150" />
+            <ul data-role="listview" id="movielist" width="150" data-filter-placeholder="Type in your Movie"></ul>
+        </div>
+    </div>
+
+    <div class="youtub-container">
+        <div id="VideoID" class="youtube-player" data-id="VIDEOID"></div>
+    </div>
+</body>
+</html>
+
+
